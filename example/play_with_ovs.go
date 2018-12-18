@@ -5,7 +5,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/socketplane/libovsdb"
+	"github.com/oilbeater/libovsdb"
 )
 
 // Silly game that detects creation of Bridge named "stop" and exits
@@ -53,10 +53,12 @@ func createBridge(ovs *libovsdb.OvsdbClient, bridgeName string) {
 		Row:      bridge,
 		UUIDName: namedUUID,
 	}
+	r, _ := insertOp.MarshalJSON()
+	fmt.Println(string(r))
 
 	// Inserting a Bridge row in Bridge table requires mutating the open_vswitch table.
 	uuidParameter := libovsdb.UUID{GoUUID: getRootUUID()}
-	mutateUUID := []libovsdb.UUID{{namedUUID}}
+	mutateUUID := []libovsdb.UUID{{GoUUID: namedUUID}}
 	mutateSet, _ := libovsdb.NewOvsSet(mutateUUID)
 	mutation := libovsdb.NewMutation("bridges", "insert", mutateSet)
 	condition := libovsdb.NewCondition("_uuid", "==", uuidParameter)
@@ -68,12 +70,14 @@ func createBridge(ovs *libovsdb.OvsdbClient, bridgeName string) {
 		Mutations: []interface{}{mutation},
 		Where:     []interface{}{condition},
 	}
+	r, _ = mutateOp.MarshalJSON()
+	fmt.Println(string(r))
 
 	operations := []libovsdb.Operation{insertOp, mutateOp}
 	reply, _ := ovs.Transact("Open_vSwitch", operations...)
 
 	if len(reply) < len(operations) {
-		fmt.Println("Number of Replies should be atleast equal to number of Operations")
+		fmt.Println("Number of Replies should be at least equal to number of Operations")
 	}
 	ok := true
 	for i, o := range reply {
